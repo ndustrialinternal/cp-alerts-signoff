@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Nsight Predictions (Today Only)</title>
+  <!-- ... your existing <style> blocks ... -->
+</head>
+<body>
+  <h1>AMPERON PEAK PREDICTION VIEWER</h1>
+  <h2>Today’s Forecast</h2>
+
+  <div id="loading">
+    <div class="spinner"></div>
+  </div>
+  <button
+    id="alerts-button"
+    onclick="window.location.href='https://ndustrialinternal.github.io/cp-peaks/';">
+    Open Current Peaks
+  </button>
+
+  <div id="output"></div>
+  <div id="theme-container">
+    <select id="theme-select">
+      <option value="1">Ultra-Minimal (Light)</option>
+      <option value="0">Terminal Green</option>
+      <option value="2">Modern Dark</option>
+    </select>
+  </div>
+
+  <script>
+    const endpoints = [
+      { label: "ERCOT 4CP", path: "ercot_4cp" },
+      /* ... the rest of your endpoints ... */
+    ];
+
+    // themes[] and theme‐select logic unchanged…
+
+    // Create the table HTML as before:
+    function buildTableHtml(data, metadata) {
+      let html = '<table><tr>' +
+                 ['Date','Peak Hour','Peak Load (GW)','Probability']
+                   .map(h => `<th>${h}</th>`).join('') +
+                 '</tr>';
+
+      data.forEach(({ date, peak_hour, peak_load, prob }) => {
+        const cls = prob > 90
+                  ? ' class="high-prob"'
+                  : prob >= 50
+                  ? ' class="mid-prob"'
+                  : '';
+        html += `<tr${cls}>
+                   <td>${date}</td>
+                   <td>${peak_hour}</td>
+                   <td>${peak_load.toFixed(2)}</td>
+                   <td>${prob}</td>
+                 </tr>`;
+      });
+
+      html += '</table>';
+
+      if (metadata?.prediction_timestamp) {
+        const dtUtc = new Date(metadata.prediction_timestamp + 'Z');
+        const localString = dtUtc.toLocaleString(undefined, { timeZoneName: 'short' });
+        html += `<div class="note">Last updated: ${localString}</div>`;
+      }
+      return html;
+    }
+
+    async function loadPredictions() {
+      const today = new Date().toISOString().split('T')[0];
+      const fragment = document.createDocumentFragment();
+
+      await Promise.all(endpoints.map(async ({ label, path, zoneId }) => {
+        const container = document.createElement('div');
+        container.className = 'zone';
+        container.innerHTML = `<h2>${label}</h2>`;
+
+        let url = `https://cp-backend-4ntg.onrender.com/api/predictions/${path}`;
+        if (zoneId) url += `?zoneId=${zoneId}`;
+
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error();
+          const { data, metadata } = await res.json();
+
+          // **Filter to today only**
+          const todaysData = data.filter(d => d.date === today);
+
+          if (todaysData.length) {
+            container.innerHTML += buildTableHtml(todaysData, metadata);
+          } else {
+            container.innerHTML += `<div class="note">No predictions for ${today}</div>`;
+          }
+        } catch {
+          container.innerHTML += `<div class="error">Error loading data</div>`;
+        }
+
+        fragment.appendChild(container);
+      }));
+
+      loading.style.display = 'none';
+      output.appendChild(fragment);
+      output.style.display = 'block';
+
+      // apply theme finally
+      styleTag.innerHTML = themes[parseInt(savedThemeIndex, 10)];
+      themeContainer.style.display = 'block';
+    }
+
+    loadPredictions();
+  </script>
+</body>
+</html>
