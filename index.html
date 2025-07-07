@@ -133,6 +133,8 @@
   <button id="approve-button">Approve</button>
 
   <script>
+    const PROXY_URL = 'https://ndustrial-proxy.onrender.com/graphql';
+
     const endpoints = [
       { label: "ERCOT 4CP", path: "ercot_4cp" },
       { label: "PJM 5CP PLC", path: "pjm_5cp_plc" },
@@ -216,10 +218,10 @@
       const btn = document.getElementById('approve-button');
       btn.disabled = true;
 
-      const projectIds = Array.from({length: 14}, (_, i) => i + 2); // [2,3,…,15]
+      const projectIds = Array.from({length: 14}, (_, i) => i + 2); // [2..15]
       try {
         await Promise.all(projectIds.map(id =>
-          fetch('https://demo.api.ndustrial.io/graphql', {
+          fetch(PROXY_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -240,7 +242,7 @@
         alert('Projects 2–15 have been approved.');
       } catch (e) {
         console.error(e);
-        alert('An error occurred while approving projects.');
+        alert('Error approving projects.');
       } finally {
         btn.disabled = false;
       }
