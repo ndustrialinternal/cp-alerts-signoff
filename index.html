@@ -3,8 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <title>Nsight Predictions (Today Only)</title>
-
   <style>
+    /* Global fonts */
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      padding: 1rem;
+      margin: 0;
+    }
+    h1 {
+      font-size: 2rem;
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    h2 {
+      font-size: 1.5rem;
+      text-align: center;
+      margin-top: 0;
+      margin-bottom: 1rem;
+    }
+
     /* Spinner & layout */
     #loading {
       display: flex;
@@ -29,13 +48,19 @@
       display: none;
     }
 
-    /* Base table styling */
+    /* Zone container centered */
+    .zone {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    /* Table styling */
     table {
-      margin: 1rem auto;
+      margin: 0 auto 1rem;
       width: 90%;
       border-collapse: collapse;
       text-align: center;
-      font-size: 0.95rem;
+      font-size: 1rem;
     }
     th, td {
       border: 1px solid #ccc;
@@ -50,9 +75,9 @@
       background: #f9f9f9;
     }
     .note {
-      text-align: right;
+      text-align: center;
       color: #555;
-      margin-right: 5%;
+      margin: 0.5rem 0 1rem;
       font-style: italic;
     }
     .error {
@@ -69,6 +94,24 @@
       color: #a00000 !important;
       font-weight: bold;
     }
+
+    /* Buttons */
+    button {
+      font-family: inherit;
+      font-size: 1rem;
+      padding: 0.75rem 1.5rem;
+      margin: 1rem auto;
+      display: block;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background: #007bff;
+      color: #fff;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
@@ -78,6 +121,7 @@
   <div id="loading">
     <div class="spinner"></div>
   </div>
+
   <button
     id="alerts-button"
     onclick="window.location.href='https://ndustrialinternal.github.io/cp-peaks/';">
@@ -85,6 +129,8 @@
   </button>
 
   <div id="output"></div>
+
+  <button id="approve-button">Approve</button>
 
   <script>
     const endpoints = [
@@ -147,9 +193,7 @@
           if (!res.ok) throw new Error();
           const { data, metadata } = await res.json();
 
-          // filter to today only
           const todaysData = data.filter(d => d.date === today);
-
           if (todaysData.length) {
             container.innerHTML += buildTableHtml(todaysData, metadata);
           } else {
@@ -167,6 +211,43 @@
       output.appendChild(fragment);
       output.style.display = 'block';
     }
+
+    async function approveProjects() {
+      const btn = document.getElementById('approve-button');
+      btn.disabled = true;
+
+      const projectIds = Array.from({length: 14}, (_, i) => i + 2); // [2,3,…,15]
+      try {
+        await Promise.all(projectIds.map(id =>
+          fetch('https://demo.api.ndustrial.io/graphql', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: `
+                mutation {
+                  setProjectConfig(input: {
+                    projectId: ${id},
+                    key: "RISK_THRESHOLD",
+                    value: 0
+                  }) {
+                    project { id config }
+                  }
+                }
+              `
+            })
+          })
+        ));
+        alert('Projects 2–15 have been approved.');
+      } catch (e) {
+        console.error(e);
+        alert('An error occurred while approving projects.');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('approve-button')
+            .addEventListener('click', approveProjects);
 
     loadPredictions();
   </script>
