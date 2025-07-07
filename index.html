@@ -3,7 +3,73 @@
 <head>
   <meta charset="UTF-8" />
   <title>Nsight Predictions (Today Only)</title>
-  <!-- ... your existing <style> blocks ... -->
+
+  <style>
+    /* Spinner & layout */
+    #loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100px;
+      margin-top: 2rem;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #ccc;
+      border-top: 4px solid #666;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    #output {
+      display: none;
+    }
+
+    /* Base table styling */
+    table {
+      margin: 1rem auto;
+      width: 90%;
+      border-collapse: collapse;
+      text-align: center;
+      font-size: 0.95rem;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.75rem;
+    }
+    th {
+      background: #f5f5f5;
+      color: #111;
+      font-weight: bold;
+    }
+    tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+    .note {
+      text-align: right;
+      color: #555;
+      margin-right: 5%;
+      font-style: italic;
+    }
+    .error {
+      color: #b00020;
+      margin: 1rem 0;
+    }
+    .mid-prob {
+      background: #fff8b3 !important;
+      color: #333 !important;
+      font-weight: bold;
+    }
+    .high-prob {
+      background: #ffe0e0 !important;
+      color: #a00000 !important;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
   <h1>AMPERON PEAK PREDICTION VIEWER</h1>
@@ -19,23 +85,21 @@
   </button>
 
   <div id="output"></div>
-  <div id="theme-container">
-    <select id="theme-select">
-      <option value="1">Ultra-Minimal (Light)</option>
-      <option value="0">Terminal Green</option>
-      <option value="2">Modern Dark</option>
-    </select>
-  </div>
 
   <script>
     const endpoints = [
       { label: "ERCOT 4CP", path: "ercot_4cp" },
-      /* ... the rest of your endpoints ... */
+      { label: "PJM 5CP PLC", path: "pjm_5cp_plc" },
+      { label: "PJM AECO", path: "pjm_5cp_nits", zoneId: "PJM_LZ_AECO" },
+      { label: "PJM AEP", path: "pjm_5cp_nits", zoneId: "PJM_LZ_AEP" },
+      { label: "PJM BGE", path: "pjm_5cp_nits", zoneId: "PJM_LZ_BGE" },
+      { label: "PJM COMED", path: "pjm_5cp_nits", zoneId: "PJM_LZ_COMED" },
+      { label: "PJM DPL", path: "pjm_5cp_nits", zoneId: "PJM_LZ_DPL" },
+      { label: "PJM PECO", path: "pjm_5cp_nits", zoneId: "PJM_LZ_PECO" },
+      { label: "PJM PPL", path: "pjm_5cp_nits", zoneId: "PJM_LZ_PPL" },
+      { label: "PJM PSEG", path: "pjm_5cp_nits", zoneId: "PJM_LZ_PSEG" }
     ];
 
-    // themes[] and theme‐select logic unchanged…
-
-    // Create the table HTML as before:
     function buildTableHtml(data, metadata) {
       let html = '<table><tr>' +
                  ['Date','Peak Hour','Peak Load (GW)','Probability']
@@ -83,7 +147,7 @@
           if (!res.ok) throw new Error();
           const { data, metadata } = await res.json();
 
-          // **Filter to today only**
+          // filter to today only
           const todaysData = data.filter(d => d.date === today);
 
           if (todaysData.length) {
@@ -98,13 +162,10 @@
         fragment.appendChild(container);
       }));
 
-      loading.style.display = 'none';
+      document.getElementById('loading').style.display = 'none';
+      const output = document.getElementById('output');
       output.appendChild(fragment);
       output.style.display = 'block';
-
-      // apply theme finally
-      styleTag.innerHTML = themes[parseInt(savedThemeIndex, 10)];
-      themeContainer.style.display = 'block';
     }
 
     loadPredictions();
